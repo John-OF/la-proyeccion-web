@@ -33,6 +33,9 @@ export const MAX_FALL_SPEED = 360;
 /** Cooldown entre cambios de mundo (s) — GDD §3.1: 0.4 s. */
 export const WORLD_SWITCH_COOLDOWN = 0.4;
 
+/** Duración del glitch radial del cambio de mundo (s) — GDD §3.1: "transición visual de 0.3 s". */
+export const WORLD_SWITCH_GLITCH_DURATION = 0.3;
+
 /** Fundidos de muerte (s) — GDD §3.5: muerte barata, recarga rápida, sin pantalla de derrota. */
 export const DEATH_FADE_OUT = 0.14;
 export const DEATH_FADE_IN = 0.16;
@@ -42,6 +45,24 @@ export const FALL_DEATH_MARGIN = 32;
 
 /** SafePush (GDD §3.1): radio máximo de empuje a una posición válida (px; 2 tiles). */
 export const SAFE_PUSH_RADIUS = 32;
+
+/** Interacción (GDD §3.3): radio por defecto del interactuable (px; 1.5 tiles). Provisional. */
+export const INTERACT_RADIUS = 24;
+
+/** Corrupción de texto (GDD §6.4) — probabilidad de sustitución por carácter candidato. */
+export const CORRUPTION_L1_CHANCE = 0.45; // nivel 1: caracteres extraños ocasionales
+export const CORRUPTION_L2_BLOCK_CHANCE = 0.5; // nivel 2: bloques █ fragmentando el texto
+
+/** Mensajes de Keplin (GDD §6.3): tiempos de aparición, sostenido por defecto y salida (s). */
+export const KEPLIN_FADE_IN = 0.18;
+export const KEPLIN_HOLD_DEFAULT = 2.4;
+export const KEPLIN_FADE_OUT = 0.6;
+
+/** Pulso del radar (GDD §3.2): duración de la revelación (s; rango 3–5, a calibrar). */
+export const RADAR_REVEAL_SECONDS = 4;
+
+/** Pulso del radar: tiempo en que la onda alcanza el borde de pantalla (s). Provisional. */
+export const RADAR_EXPAND_SECONDS = 0.6;
 
 /** Cámara: interpolación del seguimiento (fracción por frame a 60 fps). Provisional. */
 export const CAMERA_LERP = 0.12;

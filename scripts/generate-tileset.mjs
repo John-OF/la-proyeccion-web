@@ -7,7 +7,7 @@ import { deflateSync } from 'node:zlib';
 import { writeFileSync } from 'node:fs';
 
 const TILE = 16;
-const COLS = 8;
+const COLS = 11;
 const WIDTH = TILE * COLS;
 const HEIGHT = TILE;
 
@@ -22,9 +22,51 @@ const hex = (s) => [
 /** Oscurece un color multiplicando sus canales. */
 const darken = ([r, g, b, a], f) => [Math.round(r * f), Math.round(g * f), Math.round(b * f), a];
 
+const TRANSPARENT = [0, 0, 0, 0];
+
+// ——— Pistas de entorno (F4.P4, GDD §7): tiles con transparencia ———
+// Vocabulario al servicio de la regla de oro: el entorno susurra la geometría
+// del otro mundo. Deben ser visibles pero NO obvias a primera vista.
+
+// Sombra que no corresponde a nada visible: dither oscuro translúcido.
+const SHADOW_COLOR = [8, 10, 14, 88];
+function paintShadow(x, y) {
+  // tablero irregular: más denso al centro vertical, desflecado en los bordes
+  const on = (x + y) % 2 === 0 && (x * 5 + y * 11) % 17 !== 0;
+  return on ? SHADOW_COLOR : TRANSPARENT;
+}
+
+// Escombros que asoman por el borde inferior: montículos grises en la base.
+const DEBRIS_BODY = hex('#4a5260');
+const DEBRIS_DARK = hex('#2a2f38');
+const DEBRIS_RUST = hex('#6a4438');
+function paintDebris(x, y) {
+  // tres montículos de alturas distintas (perfil determinista por columna)
+  const profile = [3, 5, 6, 4, 2, 1, 3, 6, 8, 6, 3, 1, 2, 4, 5, 3];
+  const h = profile[x];
+  if (y < TILE - h) {
+    return TRANSPARENT;
+  }
+  if (y === TILE - h) return DEBRIS_DARK; // cresta oscura
+  return (x * 7 + y * 13) % 11 === 0 ? DEBRIS_RUST : DEBRIS_BODY;
+}
+
+// Marca de desgaste donde "algo" apoya en el otro mundo: rasguños cortos
+// sobre el borde superior (la cara que se pisa) del tile de debajo.
+const WEAR_COLOR = [40, 44, 52, 215];
+function paintWear(x, y) {
+  if (y > 2) {
+    return TRANSPARENT;
+  }
+  // guiones horizontales descolocados por fila
+  const dash = (x + y * 5) % 7;
+  return dash < 3 && (x * 3 + y) % 4 !== 0 ? WEAR_COLOR : TRANSPARENT;
+}
+
 // Definición de tiles (índice = GID - 1 en los mapas de Tiled):
 //   1 SIM bloque · 2 SIM plataforma · 3 REAL bloque · 4 REAL plataforma
 //   5 COMMON bloque · 6 COMMON plataforma · 7 reservado/debug · 8 relleno
+//   9 DECOR sombra · 10 DECOR escombros · 11 DECOR desgaste (pistas, F4.P4)
 const tiles = [
   { fill: '#1f4e5c', top: '#7fd8d8', speck: null }, // SIM: cyan limpio
   { fill: '#173a45', top: '#5fb8c8', speck: null },
@@ -34,6 +76,9 @@ const tiles = [
   { fill: '#474f5d', top: '#8a94a2', speck: null },
   { fill: '#5a2a5a', top: '#d860d8', speck: null }, // reservado (magenta debug)
   { fill: '#11151b', top: '#1d242e', speck: null }, // relleno oscuro
+  { paint: paintShadow }, // DECOR: sombra sin emisor
+  { paint: paintDebris }, // DECOR: escombros que asoman
+  { paint: paintWear }, // DECOR: marca de desgaste
 ];
 
 // --- raster RGBA con byte de filtro 0 por fila (formato PNG) ---
@@ -49,11 +94,20 @@ function setPixel(x, y, [r, g, b, a]) {
 }
 
 tiles.forEach((def, idx) => {
+  const ox = idx * TILE;
+  if (def.paint) {
+    // tile de pista (con transparencia): el pintor decide píxel a píxel
+    for (let y = 0; y < TILE; y++) {
+      for (let x = 0; x < TILE; x++) {
+        setPixel(ox + x, y, def.paint(x, y));
+      }
+    }
+    return;
+  }
   const fill = hex(def.fill);
   const top = hex(def.top);
   const speck = def.speck ? hex(def.speck) : null;
   const bottom = darken(fill, 0.7);
-  const ox = idx * TILE;
   for (let y = 0; y < TILE; y++) {
     for (let x = 0; x < TILE; x++) {
       let color = fill;
